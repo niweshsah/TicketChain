@@ -1,0 +1,48 @@
+{
+  "verifiedAt": "2026-09-30 17:04:11 UTC",
+  "publishedEvents": 33,
+  "availableInventoryUnits": 39240,
+  "additionalInventoryUnitsSeeded": 39000,
+  "originalOrdersPreservedAtSeed": 12,
+  "repeatSeed": {
+    "newEvents": 0,
+    "newInventoryUnits": 0
+  },
+  "oauthProvidersConfigured": {
+    "google": true,
+    "github": true
+  },
+  "checks": {
+    "oauthIntegrationFixtures": 13,
+    "totalIntegration": 39,
+    "browser": 10,
+    "unit": 8,
+    "build": "passed",
+    "typecheck": "passed",
+    "lint": "passed",
+    "format": "passed",
+    "gatewayCallbackCodeRedaction": true
+  },
+  "liveOAuth": "Provider configuration, enabled browser buttons and authorization initialization verified; consent and successful callback login remain unverified.",
+  "oauthCredentialsPresent": {
+    "googleClientId": true,
+    "googleClientSecret": true,
+    "githubClientId": true,
+    "githubClientSecret": true
+  },
+  "authorizationInitialization": {
+    "google": {
+      "buttonEnabled": true,
+      "authorizationHost": "accounts.google.com",
+      "callbackMatches": true,
+      "pkceMethod": "S256"
+    },
+    "github": {
+      "buttonEnabled": true,
+      "authorizationHost": "github.com",
+      "callbackMatches": true,
+      "pkceMethod": "S256"
+    }
+  },
+  "oauthConfigurationUpdatedAt": "2026-10-01T02:38:57.807207+00:00"
+}

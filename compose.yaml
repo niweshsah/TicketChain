@@ -1,0 +1,274 @@
+x-runtime: &runtime
+  init: true
+  restart: unless-stopped
+  stop_grace_period: 30s
+  image: ticketchain-service:local
+  build: { context: ., target: api }
+  environment: &common
+    NODE_ENV: development
+    JWT_SECRET: local-compose-demo-only-replace-before-deployment
+    WEB_ORIGIN: http://localhost:8080
+    PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-demo}
+    APTOS_TREASURY: ${APTOS_TREASURY:-}
+    APTOS_MODULE: ${APTOS_MODULE:-}
+    TRUST_PROXY_HOPS: 1
+    SERVICE_TOKEN: ${SERVICE_TOKEN:-local-internal-service-token-replace-in-production}
+    JWT_PUBLIC_KEY_PATH: /keys/public/jwt.pub
+    REDIS_URL: redis://redis:6379
+    RABBITMQ_URL: amqp://ticketchain:localbroker@rabbitmq:5672
+    ELASTICSEARCH_URL: http://elasticsearch:9200
+  volumes: ['jwt-public:/keys/public:ro']
+  depends_on:
+    bootstrap: { condition: service_completed_successfully }
+    rabbitmq: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  healthcheck: &api-health
+    test:
+      [
+        'CMD',
+        'node',
+        '-e',
+        "fetch('http://localhost:5000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+      ]
+    interval: 5s
+    retries: 15
+services:
+  minio:
+    image: ticketchain-minio:local
+    build: { context: infrastructure/minio }
+    restart: unless-stopped
+    command: ['server', '/data']
+    environment:
+      MINIO_ROOT_USER: ${AVATAR_S3_ACCESS_KEY:-localavatars}
+      MINIO_ROOT_PASSWORD: ${AVATAR_S3_SECRET_KEY:-local-avatar-storage-replace-in-production}
+    volumes: ['avatar-data:/data']
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 5s
+      retries: 20
+  postgres:
+    restart: unless-stopped
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ticketchain
+      POSTGRES_PASSWORD: localdemo
+      POSTGRES_DB: ticketchain_demo
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docs/init-test-db.sql:/docker-entrypoint-initdb.d/test.sql:ro
+    ports: ['127.0.0.1:5432:5432']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ticketchain -d ticketchain_demo']
+      interval: 3s
+      retries: 20
+  redis:
+    image: redis:7.4.6-alpine
+    restart: unless-stopped
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory',
+        '128mb',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
+    volumes: ['redis-data:/data']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 3s
+      retries: 20
+  rabbitmq:
+    image: rabbitmq:4.2.0-management-alpine
+    restart: unless-stopped
+    environment:
+      { RABBITMQ_DEFAULT_USER: ticketchain, RABBITMQ_DEFAULT_PASS: localbroker }
+    volumes: ['rabbitmq-data:/var/lib/rabbitmq']
+    ports: ['127.0.0.1:15672:15672']
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 5s
+      retries: 30
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.4
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: '-Xms384m -Xmx384m'
+    mem_limit: 1g
+    volumes: ['elasticsearch-data:/usr/share/elasticsearch/data']
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -fsS http://localhost:9200/_cluster/health >/dev/null',
+        ]
+      interval: 10s
+      retries: 30
+  migrate:
+    image: ticketchain-service:local
+    build: { context: ., target: api }
+    environment:
+      DATABASE_URL: postgresql://ticketchain:localdemo@postgres:5432/ticketchain_demo
+    command: ['npm', 'run', 'db:migrate']
+    depends_on:
+      postgres: { condition: service_healthy }
+  seed:
+    image: ticketchain-service:local
+    build: { context: ., target: api }
+    environment:
+      DATABASE_URL: postgresql://ticketchain:localdemo@postgres:5432/ticketchain_demo
+      JWT_SECRET: local-compose-demo-only-replace-before-deployment
+    command: ['node', 'apps/api/dist/scripts/seed.js']
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+  bootstrap:
+    image: ticketchain-service:local
+    build: { context: ., target: api }
+    user: root
+    environment:
+      SOURCE_DATABASE_URL: postgresql://ticketchain:localdemo@postgres:5432/ticketchain_demo
+      DATABASE_PASSWORD_IDENTITY: ${DATABASE_PASSWORD_IDENTITY:-local-identity-replace-before-production}
+      DATABASE_PASSWORD_BOOKING: ${DATABASE_PASSWORD_BOOKING:-local-booking-replace-before-production}
+      DATABASE_PASSWORD_PAYMENTS: ${DATABASE_PASSWORD_PAYMENTS:-local-payments-replace-before-production}
+      DATABASE_PASSWORD_CATALOG: ${DATABASE_PASSWORD_CATALOG:-local-catalog-replace-before-production}
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://ticketchain:localbroker@rabbitmq:5672
+      AVATAR_S3_ENDPOINT: http://minio:9000
+      AVATAR_S3_BUCKET: avatars
+      AVATAR_S3_ACCESS_KEY: ${AVATAR_S3_ACCESS_KEY:-localavatars}
+      AVATAR_S3_SECRET_KEY: ${AVATAR_S3_SECRET_KEY:-local-avatar-storage-replace-in-production}
+      BACKUP_DIRECTORY: /backups
+      JWT_PRIVATE_DIRECTORY: /keys/private
+      JWT_PUBLIC_DIRECTORY: /keys/public
+    volumes:
+      [
+        'source-backups:/backups',
+        'jwt-private:/keys/private',
+        'jwt-public:/keys/public',
+      ]
+    command: ['node', 'apps/api/dist/scripts/service-databases.js', 'import']
+    depends_on:
+      seed: { condition: service_completed_successfully }
+  identity:
+    <<: *runtime
+    command: ['node', 'apps/api/dist/src/services/identity/server.js']
+    depends_on:
+      bootstrap: { condition: service_completed_successfully }
+      rabbitmq: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    environment:
+      <<: *common
+      AVATAR_S3_ENDPOINT: http://minio:9000
+      AVATAR_S3_ACCESS_KEY: ${AVATAR_S3_ACCESS_KEY:-localavatars}
+      AVATAR_S3_SECRET_KEY: ${AVATAR_S3_SECRET_KEY:-local-avatar-storage-replace-in-production}
+      SERVICE_NAME: identity
+      DATABASE_URL: postgresql://tc_identity:local-identity-replace-before-production@postgres:5432/ticketchain_demo_identity?connection_limit=5&pool_timeout=15
+      JWT_PRIVATE_KEY_PATH: /keys/private/jwt.pem
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+    volumes: ['jwt-public:/keys/public:ro', 'jwt-private:/keys/private:ro']
+  booking:
+    <<: *runtime
+    command: ['node', 'apps/api/dist/src/services/booking/server.js']
+    environment: &booking-environment
+      <<: *common
+      SERVICE_NAME: booking
+      DATABASE_URL: postgresql://tc_booking:local-booking-replace-before-production@postgres:5432/ticketchain_demo_booking?connection_limit=5&pool_timeout=15
+  payments:
+    <<: *runtime
+    command: ['node', 'apps/api/dist/src/services/payments/server.js']
+    environment: &payments-environment
+      <<: *common
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      APTOS_PRIVATE_KEY: ${APTOS_PRIVATE_KEY:-}
+      SERVICE_NAME: payments
+      DATABASE_URL: postgresql://tc_payments:local-payments-replace-before-production@postgres:5432/ticketchain_demo_payments?connection_limit=5&pool_timeout=15
+  catalog:
+    <<: *runtime
+    command: ['node', 'apps/api/dist/src/services/catalog/server.js']
+    environment: &catalog-environment
+      <<: *common
+      SERVICE_NAME: catalog
+      DATABASE_URL: postgresql://tc_catalog:local-catalog-replace-before-production@postgres:5432/ticketchain_demo_catalog?connection_limit=5&pool_timeout=15
+  booking-worker:
+    <<: *runtime
+    environment: *booking-environment
+    command: ['node', 'apps/api/dist/src/services/booking/worker.js']
+    healthcheck: &worker-health
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          'const {PrismaClient}=require(''@prisma/client'');const p=new PrismaClient();p.$$queryRawUnsafe("SELECT key FROM tc_ratebucket WHERE key=''worker-health'' AND expires_at>now()").then(r=>process.exit(r.length?0:1)).catch(()=>process.exit(1))',
+        ]
+      interval: 10s
+      retries: 10
+  payments-worker:
+    <<: *runtime
+    environment: *payments-environment
+    command: ['node', 'apps/api/dist/src/services/payments/worker.js']
+    healthcheck: *worker-health
+  catalog-worker:
+    <<: *runtime
+    environment: *catalog-environment
+    command: ['node', 'apps/api/dist/src/services/catalog/worker.js']
+    healthcheck: *worker-health
+    depends_on:
+      bootstrap: { condition: service_completed_successfully }
+      booking: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+  web:
+    init: true
+    restart: unless-stopped
+    build: { context: ., target: web }
+    ports: ['127.0.0.1:8080:80']
+    depends_on:
+      identity: { condition: service_healthy }
+      booking: { condition: service_healthy }
+      payments: { condition: service_healthy }
+      catalog: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1/']
+      interval: 10s
+      retries: 5
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ['observability']
+    volumes: ['./docs/prometheus.yml:/etc/prometheus/prometheus.yml:ro']
+    ports: ['127.0.0.1:9090:9090']
+  grafana:
+    image: grafana/grafana:12.1.1
+    profiles: ['observability']
+    ports: ['127.0.0.1:3000:3000']
+  validation:
+    build: { context: ., target: validation }
+    profiles: ['validation']
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://ticketchain:localdemo@postgres:5432/ticketchain_test
+      TEST_DATABASE_URL: postgresql://ticketchain:localdemo@postgres:5432/ticketchain_test
+      JWT_SECRET: local-validation-secret-at-least-32-characters
+      REDIS_URL: redis://redis:6379/1
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+volumes:
+  avatar-data:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+  elasticsearch-data:
+  jwt-private:
+  jwt-public:
+  source-backups:

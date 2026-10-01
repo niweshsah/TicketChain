@@ -1,0 +1,496 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  attendee
+  organizer
+  admin
+}
+
+enum EventStatus {
+  draft
+  published
+  finished
+  cancelled
+}
+
+enum TicketStatus {
+  available
+  reserved
+  sold
+  minted
+  used
+  cancelled
+}
+
+enum ReservationStatus {
+  active
+  completed
+  expired
+  cancelled
+}
+
+enum OrderStatus {
+  pending
+  payment_confirmed
+  mint_pending
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  succeeded
+  failed
+  refunded
+}
+
+enum BlockchainTransactionStatus {
+  pending
+  confirmed
+  failed
+}
+
+model User {
+  id                  String           @id @default(uuid()) @db.Uuid
+  name                String
+  email               String           @unique
+  passwordHash        String
+  walletAddress       String?
+  role                UserRole         @default(attendee)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  organizer           Organizer?
+  reservations        Reservation[]
+  orders              Order[]
+  refreshTokens       RefreshToken[]
+  ownedTickets        Ticket[]         @relation("CurrentTicketOwner")
+  ticketTransfersFrom TicketTransfer[] @relation("TransferFromUser")
+  ticketTransfersTo   TicketTransfer[] @relation("TransferToUser")
+  reviews             EventReview[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Organizer {
+  id                  String             @id @default(uuid()) @db.Uuid
+  userId              String             @unique @db.Uuid
+  payoutWalletAddress String?
+  verified            Boolean            @default(false)
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events              Event[]
+  royalties           OrganizerRoyalty[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model Venue {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  address   String?
+  city      String?
+  capacity  Int?
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+  events    Event[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Event {
+  id          String        @id @default(uuid()) @db.Uuid
+  organizerId String        @db.Uuid
+  venueId     String        @db.Uuid
+  title       String
+  description String?
+  category    String?
+  artist      String?
+  imageUrl    String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  status      EventStatus   @default(draft)
+  organizer   Organizer     @relation(fields: [organizerId], references: [id], onDelete: Restrict)
+  venue       Venue         @relation(fields: [venueId], references: [id], onDelete: Restrict)
+  ticketTypes TicketType[]
+  reviews     EventReview[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, startsAt])
+}
+
+model EventReview {
+  id        String   @id @default(uuid()) @db.Uuid
+  eventId   String   @db.Uuid
+  userId    String   @db.Uuid
+  comment   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId, createdAt])
+}
+
+model TicketType {
+  id                  String   @id @default(uuid()) @db.Uuid
+  eventId             String   @db.Uuid
+  name                String
+  description         String?
+  priceCents          Int
+  totalQuantity       Int
+  soldQuantity        Int      @default(0)
+  royaltyPercentage   Decimal? @db.Decimal(5, 2)
+  maxResalePriceCents Int?
+  event               Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets             Ticket[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Ticket {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  ticketTypeId           String                  @db.Uuid
+  seatReference          String?
+  status                 TicketStatus            @default(available)
+  currentOwnerId         String?                 @db.Uuid
+  tokenId                String?                 @unique
+  txHash                 String?
+  ticketType             TicketType              @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+  currentOwner           User?                   @relation("CurrentTicketOwner", fields: [currentOwnerId], references: [id], onDelete: SetNull)
+  reservation            Reservation?
+  orderItem              OrderItem?
+  blockchainTransactions BlockchainTransaction[]
+  transfers              TicketTransfer[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  @@unique([ticketTypeId, seatReference])
+  @@index([ticketTypeId, status])
+}
+
+model Reservation {
+  id        String            @id @default(uuid()) @db.Uuid
+  ticketId  String            @unique @db.Uuid
+  userId    String            @db.Uuid
+  expiresAt DateTime
+  status    ReservationStatus @default(active)
+  ticket    Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@index([expiresAt])
+}
+
+model Order {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  userId                 String                  @db.Uuid
+  idempotencyKey         String                  @unique
+  status                 OrderStatus             @default(pending)
+  totalCents             Int
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items                  OrderItem[]
+  payments               Payment[]
+  blockchainTransactions BlockchainTransaction[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  orderId    String   @db.Uuid
+  ticketId   String   @unique @db.Uuid
+  priceCents Int
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+}
+
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  orderId           String        @db.Uuid
+  provider          String
+  providerPaymentId String?
+  amountCents       Int
+  status            PaymentStatus @default(pending)
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([providerPaymentId])
+}
+
+model BlockchainTransaction {
+  id        String                      @id @default(uuid()) @db.Uuid
+  orderId   String?                     @db.Uuid
+  ticketId  String?                     @db.Uuid
+  txHash    String                      @unique
+  tokenId   String?
+  status    BlockchainTransactionStatus @default(pending)
+  error     String?
+  order     Order?                      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  ticket    Ticket?                     @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime                    @updatedAt
+
+  @@index([txHash])
+}
+
+model TicketTransfer {
+  id         String             @id @default(uuid()) @db.Uuid
+  ticketId   String             @db.Uuid
+  fromUserId String?            @db.Uuid
+  toUserId   String             @db.Uuid
+  txHash     String?
+  priceCents Int?
+  ticket     Ticket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  fromUser   User?              @relation("TransferFromUser", fields: [fromUserId], references: [id], onDelete: SetNull)
+  toUser     User               @relation("TransferToUser", fields: [toUserId], references: [id], onDelete: Restrict)
+  royalties  OrganizerRoyalty[]
+  createdAt  DateTime           @default(now())
+}
+
+model OrganizerRoyalty {
+  id          String          @id @default(uuid()) @db.Uuid
+  organizerId String          @db.Uuid
+  transferId  String?         @db.Uuid
+  amountCents Int
+  percentage  Decimal?        @db.Decimal(5, 2)
+  organizer   Organizer       @relation(fields: [organizerId], references: [id], onDelete: Restrict)
+  transfer    TicketTransfer? @relation(fields: [transferId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+}
+
+model Account {
+  home_city String?
+  avatar_key String?
+  id String @id @db.Uuid
+  name String
+  email String @unique
+  password_hash String?
+  role String
+  active Boolean @default(true)
+  inactive_reason String?
+  wallet String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@map("tc_account")
+}
+
+model Session {
+  id String @id @db.Uuid
+  user_id String @db.Uuid
+  family String @db.Uuid
+  token_hash String @unique
+  expires_at DateTime @db.Timestamptz(6)
+  revoked_at DateTime? @db.Timestamptz(6)
+  @@map("tc_session")
+}
+
+model Listing {
+  // SQL arrays remain nullable for legacy listings; access uses raw SQL.
+  performers String[]
+  venue_address String?
+  entry_at DateTime? @db.Timestamptz(6)
+  languages String[]
+  age_policy String?
+  accessibility_notes String?
+  test_marker String?
+  waiting_room Boolean @default(false)
+  id String @id @db.Uuid
+  owner_id String @db.Uuid
+  title String
+  description String
+  category String
+  venue String
+  city String
+  timezone String
+  image_url String
+  starts_at DateTime @db.Timestamptz(6)
+  ends_at DateTime @db.Timestamptz(6)
+  status String @default("draft")
+  sale_started Boolean @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@map("tc_listing")
+}
+
+model Tier {
+  inclusions String[]
+  status String @default("active")
+  id String @id @db.Uuid
+  event_id String @db.Uuid
+  name String
+  price_paise Int
+  price_octas BigInt?
+  quantity Int
+  sale_started Boolean @default(false)
+  @@map("tc_tier")
+}
+
+model InventoryUnit {
+  enabled Boolean @default(true)
+  id String @id @db.Uuid
+  tier_id String @db.Uuid
+  @@map("tc_inventoryunit")
+}
+
+model Purchase {
+  id String @id @db.Uuid
+  user_id String @db.Uuid
+  event_id String @db.Uuid
+  idem_key String
+  fingerprint String
+  currency String
+  total BigInt
+  status String @default("held")
+  expires_at DateTime @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@unique([user_id, idem_key])
+  @@map("tc_purchase")
+}
+
+model Allocation {
+  id String @id @db.Uuid
+  unit_id String @db.Uuid
+  order_id String @db.Uuid
+  active Boolean @default(true)
+  state String @default("held")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@map("tc_allocation")
+}
+
+model PurchaseItem {
+  id String @id @db.Uuid
+  order_id String @db.Uuid
+  tier_id String @db.Uuid
+  tier_name String
+  price BigInt
+  quantity Int
+  @@map("tc_purchaseitem")
+}
+
+model AdmissionTicket {
+  id String @id @db.Uuid
+  order_id String @db.Uuid
+  allocation_id String @unique @db.Uuid
+  credential String @unique
+  status String @default("valid")
+  checked_at DateTime? @db.Timestamptz(6)
+  @@map("tc_admissionticket")
+}
+
+model ProviderOperation {
+  id String @id @db.Uuid
+  order_id String @db.Uuid
+  kind String
+  provider String
+  status String @default("intent")
+  external_id String? @unique
+  payment_id String? @unique
+  data Json @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@unique([order_id, kind])
+  @@map("tc_provideroperation")
+}
+
+model WebhookEvent {
+  id String @id
+  payload Json
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@map("tc_webhookevent")
+}
+
+model Job {
+  id String @id @db.Uuid
+  kind String
+  dedupe String @unique
+  payload Json
+  status String @default("ready")
+  attempts Int @default(0)
+  run_at DateTime @default(now()) @db.Timestamptz(6)
+  lease_until DateTime? @db.Timestamptz(6)
+  lease_owner String?
+  error String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@map("tc_job")
+}
+
+model WalletChallenge {
+  id String @id @db.Uuid
+  user_id String @db.Uuid
+  wallet String
+  message String
+  expires_at DateTime @db.Timestamptz(6)
+  used Boolean @default(false)
+  @@map("tc_walletchallenge")
+}
+
+model Claim {
+  id String @id @db.Uuid
+  ticket_id String @unique @db.Uuid
+  recipient String
+  status String @default("pending")
+  tx_hash String? @unique
+  signed_bytes String?
+  sequence BigInt?
+  expiration BigInt?
+  @@map("tc_claim")
+}
+
+model RateBucket {
+  key String @id
+  count Int
+  expires_at DateTime @db.Timestamptz(6)
+  @@map("tc_ratebucket")
+}
+
+
+model LegacyRecord {
+  key String @id
+  source String
+  table_name String
+  record_id String
+  original Json
+  reason String?
+  @@map("tc_legacyrecord")
+}
+
+model OAuthIdentity {
+  id String @id @db.Uuid
+  user_id String @db.Uuid
+  provider String
+  subject String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  @@unique([provider, subject])
+  @@unique([user_id, provider])
+  @@map("tc_oauthidentity")
+}
+
+model OAuthAttempt {
+  state_hash String @id
+  browser_hash String
+  provider String
+  verifier String
+  role String
+  link_user_id String? @db.Uuid
+  expires_at DateTime @db.Timestamptz(6)
+  consumed_at DateTime? @db.Timestamptz(6)
+  @@map("tc_oauthattempt")
+}

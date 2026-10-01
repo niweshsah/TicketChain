@@ -1,0 +1,29 @@
+{
+  "measuredAt": "2026-10-01T03:44:43.181Z",
+  "hardware": {
+    "cpu": "Apple M5",
+    "cores": 10,
+    "memoryBytes": 17179869184,
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "dataset": {
+    "eventId": "8831e730-c510-4248-8a20-de9a17d364e0",
+    "tiers": 1,
+    "inventory": 10
+  },
+  "concurrency": 100,
+  "durationMs": 419.116708,
+  "outcomes": {
+    "success": 10,
+    "conflicts": 90,
+    "otherFailures": 0,
+    "allocated": 10
+  },
+  "latencyMs": {
+    "p50": 326.067084,
+    "p95": 408.78274999999996,
+    "max": 417.33145900000005
+  },
+  "zeroOverselling": true
+}

@@ -1,6 +1,51 @@
 {
-  "dependencies": {
-    "@aptos-labs/ts-sdk": "^1.35.0",
-    "petra-plugin-wallet-adapter": "^0.4.5"
+  "name": "ticketchain",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "demo:deploy": "node apps/api/scripts/deployment/demo.mjs",
+    "dev": "concurrently \"npm run dev -w @ticketchain/api\" \"npm run worker:dev -w @ticketchain/api\" \"npm run dev -w @ticketchain/web\"",
+    "build": "npm run build -w @ticketchain/shared && npm run build -w @ticketchain/blockchain && npm run build -w @ticketchain/api && npm run build -w @ticketchain/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint apps packages tests",
+    "format": "prettier --write apps packages tests docs *.json *.md .github *.ts *.mjs *.yaml",
+    "format:check": "prettier --check apps packages tests docs *.json *.md .github *.ts *.mjs *.yaml",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "db:migrate": "npm run db:migrate -w @ticketchain/api",
+    "db:seed": "npm run db:seed -w @ticketchain/api",
+    "openapi": "node --import tsx packages/shared/src/openapi.ts",
+    "db:local": "tsx apps/api/scripts/local-postgres.mts",
+    "test:services": "vitest run --config vitest.services.config.ts",
+    "test:failures": "tsx apps/api/scripts/failure-drill.ts"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.55.1",
+    "@types/node": "^22.18.6",
+    "@types/supertest": "^6.0.3",
+    "concurrently": "^9.2.1",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "eslint": "^9.36.0",
+    "got": "^11.8.6",
+    "prettier": "^3.6.2",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.44.1",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "uuid": "^11.1.1",
+    "deepmerge-ts": "^8.0.0",
+    "vite": "$vite"
   }
 }

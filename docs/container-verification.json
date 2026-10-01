@@ -1,0 +1,39 @@
+{
+  "verifiedAt": "2026-09-30 16:20:28 UTC",
+  "deployment": {
+    "web": 1,
+    "api": 2,
+    "worker": 2,
+    "postgres": 1,
+    "url": "http://localhost:8080"
+  },
+  "gateway": {
+    "successfulRequests": 20,
+    "requestsByReplica": {
+      "api-2": 10,
+      "api-1": 10
+    },
+    "scope": "Functional routing check; not a load benchmark"
+  },
+  "workers": {
+    "completedJobsByCurrentReplica": {
+      "worker-1": 11,
+      "worker-2": 11
+    },
+    "heartbeatHealthy": true
+  },
+  "checks": {
+    "unit": 8,
+    "integration": 26,
+    "browser": 8,
+    "move": 3,
+    "dedicatedLinuxValidation": "passed"
+  },
+  "unverified": [
+    "Live Razorpay",
+    "Live Aptos transactions",
+    "Physical camera",
+    "Live wallet interoperability",
+    "Hosted GitHub Actions"
+  ]
+}

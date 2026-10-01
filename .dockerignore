@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env*
+!.env.example
+!.env.demo.example
+artifacts
+playwright-report
+test-results
+frontend
+backend
+nft_code
+
+.runtime

@@ -1,0 +1,11 @@
+ALTER TABLE tc_account ADD COLUMN home_city TEXT;
+ALTER TABLE tc_account ADD COLUMN avatar_key TEXT;
+ALTER TABLE tc_listing ADD COLUMN performers TEXT[];
+ALTER TABLE tc_listing ADD COLUMN venue_address TEXT;
+ALTER TABLE tc_listing ADD COLUMN entry_at TIMESTAMPTZ;
+ALTER TABLE tc_listing ADD COLUMN languages TEXT[];
+ALTER TABLE tc_listing ADD COLUMN age_policy TEXT;
+ALTER TABLE tc_listing ADD COLUMN accessibility_notes TEXT;
+ALTER TABLE tc_listing ADD COLUMN test_marker TEXT;
+ALTER TABLE tc_tier ADD COLUMN inclusions TEXT[];
+ALTER TABLE tc_tier ADD COLUMN status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','retired'));

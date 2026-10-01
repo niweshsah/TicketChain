@@ -1,0 +1,14 @@
+# Scale HTTP APIs and consumers independently without exposing their ports.
+services:
+  identity:
+    deploy: { replicas: 2 }
+  booking:
+    deploy: { replicas: 2 }
+  payments:
+    deploy: { replicas: 2 }
+  catalog:
+    deploy: { replicas: 2 }
+  booking-worker:
+    deploy: { replicas: 2 }
+  payments-worker:
+    deploy: { replicas: 2 }

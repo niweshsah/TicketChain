@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+scrape_configs:
+  - job_name: ticketchain
+    static_configs:
+      - targets:
+          ['identity:5000', 'booking:5000', 'payments:5000', 'catalog:5000']

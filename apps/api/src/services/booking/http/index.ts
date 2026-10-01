@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { router as publicEvents } from './public-events';
+import { router as eventEditor } from './event-editor-routes';
+import { router as organizerReports } from './organizer-routes';
+import { router as waitingRoom } from './waiting-room-routes';
+import { router as orders } from './order-routes';
+import { router as tickets } from './ticket-routes';
+export const router = Router();
+router.use(publicEvents);
+router.use('/organizer/events', eventEditor, organizerReports);
+router.use('/events', waitingRoom);
+router.use('/orders', orders);
+router.use('/tickets', tickets);

@@ -1,9 +1,86 @@
-/nft_code/node_modules
-/nft_code/build
-/nft_code/.aptos
+# Dependencies, compiled output, and tool caches
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.vite/
+.turbo/
+.npm/
+*.tsbuildinfo
+.eslintcache
 
+# Local configuration and credentials (keep shareable templates)
 .env
 .env.*
+*.env
+*.env.*
 !.env.example
+!.env.*.example
+!*.env.example
+!*.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+.aptos/
+.aws/
 
-node_modules*
+# Runtime databases, backups, uploads, and deployment state
+.runtime/
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+
+# Logs and generated test reports
+*.log
+logs/
+artifacts/
+test-results/
+playwright-report/
+playwright/.cache/
+.nyc_output/
+
+# AI assistant instructions, context, memory, and local tool state
+AGENTS.md
+AGENTS.override.md
+CLAUDE.md
+CLAUDE.local.md
+GEMINI.md
+COPILOT.md
+AI_CONTEXT.md
+AI_NOTES.md
+MEMORY.md
+SKILL.md
+PROJECT_STATUS.md
+.agents/
+.agent/
+.codex/
+.claude/
+.cursor/
+.cursorrules
+.cursorignore
+.windsurf/
+.windsurfrules
+.gemini/
+.copilot/
+.opencode/
+.aider*
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+.github/agents/
+.github/skills/
+
+# OS and editor-local files
+.DS_Store
+._*
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

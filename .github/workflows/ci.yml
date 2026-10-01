@@ -1,0 +1,92 @@
+name: TicketChain validation
+on: [push, pull_request]
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7.4.6-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd 'redis-cli ping'
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ticketchain
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: ticketchain_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd 'pg_isready -U ticketchain'
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      REDIS_URL: redis://localhost:6379/1
+      DATABASE_URL: postgresql://ticketchain:ci-password@localhost:5432/ticketchain_test
+      TEST_DATABASE_URL: postgresql://ticketchain:ci-password@localhost:5432/ticketchain_test
+      JWT_SECRET: isolated-ci-secret-must-have-at-least-32-characters
+      WEB_ORIGIN: http://localhost:5173
+      PAYMENT_PROVIDER: demo
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run db:generate -w @ticketchain/api
+      - run: npm run format:check && npm run lint
+      - run: npm run build && npm run typecheck
+      - run: npm run db:migrate
+      - run: npm test && npm run test:integration
+      - run: mkdir -p artifacts && npm run contention -w @ticketchain/api
+      - run: |
+          node --import tsx --input-type=module -e "import { PrismaClient } from '@prisma/client'; const p=new PrismaClient(); await p.\$executeRawUnsafe('CREATE DATABASE ticketchain_demo'); await p.\$disconnect();"
+      - run: DATABASE_URL=postgresql://ticketchain:ci-password@localhost:5432/ticketchain_demo npm run db:migrate
+      - run: DATABASE_URL=postgresql://ticketchain:ci-password@localhost:5432/ticketchain_demo node apps/api/dist/scripts/seed.js
+      - run: |
+          DATABASE_URL=postgresql://ticketchain:ci-password@localhost:5432/ticketchain_demo node apps/api/dist/src/server.js > /tmp/api.log 2>&1 &
+          DATABASE_URL=postgresql://ticketchain:ci-password@localhost:5432/ticketchain_demo node apps/api/dist/src/worker.js > /tmp/worker.log 2>&1 &
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence
+          path: |
+            artifacts/
+            playwright-report/
+            test-results/
+  move:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          curl --fail --location https://github.com/aptos-labs/aptos-core/releases/download/aptos-cli-v9.6.0/aptos-cli-9.6.0-Ubuntu-24.04-x86_64.zip --output "$RUNNER_TEMP/aptos.zip"
+          mkdir -p "$RUNNER_TEMP/aptos-cli"
+          unzip "$RUNNER_TEMP/aptos.zip" -d "$RUNNER_TEMP/aptos-cli"
+          chmod +x "$RUNNER_TEMP/aptos-cli/aptos"
+          echo "$RUNNER_TEMP/aptos-cli" >> "$GITHUB_PATH"
+      - run: npm run test:move -w @ticketchain/blockchain
+
+  microservices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: docker compose up -d --build --wait
+      - run: npm run test:services
+      - run: npm run test:failures
+      - run: npx playwright install --with-deps chromium
+      - run: E2E_BASE_URL=http://localhost:8080 E2E_EXTERNAL_SERVER=1 npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: microservice-evidence
+          path: |
+            artifacts/
+            playwright-report/
+            test-results/
+      - if: always()
+        run: docker compose down

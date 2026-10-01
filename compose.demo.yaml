@@ -1,0 +1,132 @@
+# Use only with compose.yaml, under the separate ticketchain-demo project.
+x-demo-environment: &demo-environment
+  NODE_ENV: production
+  WEB_ORIGIN: https://${DEMO_HOSTNAME:?Run the demo init script first}
+  JWT_SECRET: ${JWT_SECRET:?Required}
+  SERVICE_TOKEN: ${SERVICE_TOKEN:?Required}
+  RABBITMQ_URL: amqp://ticketchain:${RABBITMQ_PASSWORD:?Required}@rabbitmq:5672
+  PAYMENT_PROVIDER: demo
+  ALLOW_DEMO_PAYMENTS: 'true'
+  APTOS_TREASURY: ''
+  APTOS_PRIVATE_KEY: ''
+  APTOS_MODULE: ''
+  RAZORPAY_KEY_ID: ''
+  RAZORPAY_KEY_SECRET: ''
+  RAZORPAY_WEBHOOK_SECRET: ''
+x-identity-build: &identity-build
+  context: .
+  target: identity
+x-booking-build: &booking-build
+  context: .
+  target: booking
+x-payments-build: &payments-build
+  context: .
+  target: payments
+x-catalog-build: &catalog-build
+  context: .
+  target: catalog
+x-booking-environment: &booking-environment
+  <<: *demo-environment
+  DATABASE_URL: postgresql://tc_booking:${DATABASE_PASSWORD_BOOKING:?Required}@postgres:5432/ticketchain_demo_booking?connection_limit=5&pool_timeout=15
+x-payments-environment: &payments-environment
+  <<: *demo-environment
+  DATABASE_URL: postgresql://tc_payments:${DATABASE_PASSWORD_PAYMENTS:?Required}@postgres:5432/ticketchain_demo_payments?connection_limit=5&pool_timeout=15
+x-catalog-environment: &catalog-environment
+  <<: *demo-environment
+  DATABASE_URL: postgresql://tc_catalog:${DATABASE_PASSWORD_CATALOG:?Required}@postgres:5432/ticketchain_demo_catalog?connection_limit=5&pool_timeout=15
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+    ports: !reset []
+    volumes: !override ['postgres-data:/var/lib/postgresql/data']
+  rabbitmq:
+    hostname: ticketchain-demo-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Required}
+    ports: !reset []
+  migrate:
+    image: ticketchain-maintenance:demo
+    environment:
+      DATABASE_URL: postgresql://ticketchain:${POSTGRES_PASSWORD:?Required}@postgres:5432/ticketchain_demo
+  seed:
+    image: ticketchain-maintenance:demo
+    environment:
+      DATABASE_URL: postgresql://ticketchain:${POSTGRES_PASSWORD:?Required}@postgres:5432/ticketchain_demo
+      JWT_SECRET: ${JWT_SECRET:?Required}
+      DEMO_ACCOUNT_PASSWORD: ${DEMO_ACCOUNT_PASSWORD:?Required}
+  bootstrap:
+    image: ticketchain-maintenance:demo
+    environment:
+      SOURCE_DATABASE_URL: postgresql://ticketchain:${POSTGRES_PASSWORD:?Required}@postgres:5432/ticketchain_demo
+      RABBITMQ_URL: amqp://ticketchain:${RABBITMQ_PASSWORD:?Required}@rabbitmq:5672
+  identity:
+    image: ticketchain-identity:demo
+    build: *identity-build
+    environment:
+      <<: *demo-environment
+      DATABASE_URL: postgresql://tc_identity:${DATABASE_PASSWORD_IDENTITY:?Required}@postgres:5432/ticketchain_demo_identity?connection_limit=5&pool_timeout=15
+      GOOGLE_CLIENT_ID: ''
+      GOOGLE_CLIENT_SECRET: ''
+      GITHUB_CLIENT_ID: ''
+      GITHUB_CLIENT_SECRET: ''
+  booking:
+    image: ticketchain-booking:demo
+    build: *booking-build
+    environment: *booking-environment
+  payments:
+    image: ticketchain-payments:demo
+    build: *payments-build
+    environment: *payments-environment
+  catalog:
+    image: ticketchain-catalog:demo
+    build: *catalog-build
+    environment: *catalog-environment
+  booking-worker:
+    image: ticketchain-booking:demo
+    build: *booking-build
+    environment: *booking-environment
+  payments-worker:
+    image: ticketchain-payments:demo
+    build: *payments-build
+    environment: *payments-environment
+  catalog-worker:
+    image: ticketchain-catalog:demo
+    build: *catalog-build
+    environment: *catalog-environment
+  web:
+    image: ticketchain-web:demo
+    build:
+      context: .
+      target: demo-web
+      args:
+        VITE_PUBLIC_DEMO: 'true'
+    ports: !reset []
+  edge:
+    image: caddy:2-alpine
+    init: true
+    restart: unless-stopped
+    environment:
+      DEMO_HOSTNAME: ${DEMO_HOSTNAME:?Required}
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./infrastructure/gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '-q',
+          '-O',
+          '/dev/null',
+          'http://127.0.0.1:2019/config/',
+        ]
+      interval: 10s
+      retries: 10
+volumes:
+  caddy-data:
+  caddy-config:

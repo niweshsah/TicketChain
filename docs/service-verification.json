@@ -1,0 +1,211 @@
+{
+  "measuredAt": "2026-10-01T05:05:41.389680+00:00",
+  "url": "http://localhost:8080",
+  "containers": [
+    {
+      "Service": "booking",
+      "Name": "ticketchain-booking-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "booking",
+      "Name": "ticketchain-booking-2",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "booking-worker",
+      "Name": "ticketchain-booking-worker-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "booking-worker",
+      "Name": "ticketchain-booking-worker-2",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "catalog",
+      "Name": "ticketchain-catalog-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "catalog",
+      "Name": "ticketchain-catalog-2",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "catalog-worker",
+      "Name": "ticketchain-catalog-worker-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "elasticsearch",
+      "Name": "ticketchain-elasticsearch-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "identity",
+      "Name": "ticketchain-identity-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "identity",
+      "Name": "ticketchain-identity-2",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "payments",
+      "Name": "ticketchain-payments-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "payments",
+      "Name": "ticketchain-payments-2",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "payments-worker",
+      "Name": "ticketchain-payments-worker-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "payments-worker",
+      "Name": "ticketchain-payments-worker-2",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "postgres",
+      "Name": "ticketchain-postgres-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "rabbitmq",
+      "Name": "ticketchain-rabbitmq-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "redis",
+      "Name": "ticketchain-redis-1",
+      "State": "running",
+      "Health": "healthy"
+    },
+    {
+      "Service": "web",
+      "Name": "ticketchain-web-1",
+      "State": "running",
+      "Health": "healthy"
+    }
+  ],
+  "migrationVerification": {
+    "source": "ticketchain_demo",
+    "action": "verify",
+    "services": {
+      "identity": {
+        "tc_account": 23,
+        "tc_session": 214,
+        "tc_oauthidentity": 1,
+        "tc_oauthattempt": 2,
+        "tc_walletchallenge": 0,
+        "tc_ratebucket": 7
+      },
+      "booking": {
+        "tc_account": 23,
+        "tc_listing": 71,
+        "tc_tier": 134,
+        "tc_inventoryunit": 39376,
+        "tc_purchase": 53,
+        "tc_purchaseitem": 53,
+        "tc_allocation": 72,
+        "tc_admissionticket": 54,
+        "tc_provideroperation": 58,
+        "tc_claim": 0,
+        "tc_job": 90,
+        "tc_ratebucket": 7
+      },
+      "payments": {
+        "tc_purchase": 39,
+        "tc_provideroperation": 59,
+        "tc_webhookevent": 0,
+        "tc_job": 62,
+        "tc_ratebucket": 7
+      },
+      "catalog": {
+        "tc_catalogevent": 71,
+        "tc_ratebucket": 7
+      }
+    }
+  },
+  "failureDrills": {
+    "measuredAt": "2026-10-01T03:37:25.303Z",
+    "evidence": [
+      {
+        "scenario": "captured payment survives Booking worker stop and RabbitMQ restart",
+        "passed": true,
+        "durationMs": 10282.921624999999
+      },
+      {
+        "scenario": "Redis outage blocks queued reservations while existing orders remain readable",
+        "passed": true,
+        "durationMs": 960.1602919999987
+      },
+      {
+        "scenario": "Elasticsearch outage uses the catalog database and recovers after restart",
+        "passed": true,
+        "durationMs": 2819.1838750000006
+      }
+    ]
+  },
+  "contentionReports": [
+    "contention-10.json",
+    "contention-50.json",
+    "contention-100.json"
+  ],
+  "providerChecks": {
+    "googleConfigured": true,
+    "githubConfigured": true,
+    "liveOAuthLogin": "unverified",
+    "liveRazorpay": "unverified",
+    "liveAptos": "unverified"
+  },
+  "tests": {
+    "unit": 8,
+    "integration": 43,
+    "serviceJourneys": 4,
+    "browser": 14,
+    "move": 3,
+    "failureDrills": 3
+  },
+  "queueSnapshot": {
+    "booking": {
+      "ready": 0,
+      "consumers": 2,
+      "deadLetters": 0
+    },
+    "payments": {
+      "ready": 0,
+      "consumers": 2,
+      "deadLetters": 0
+    }
+  },
+  "browserRun": {
+    "finalFullRunPassed": 13,
+    "finalFullRunRateLimited": 1,
+    "targetedRerunPassed": 1,
+    "verifiedScenarios": 14
+  }
+}

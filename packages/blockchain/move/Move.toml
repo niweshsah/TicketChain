@@ -1,0 +1,13 @@
+[package]
+name = "TicketChainCollectibles"
+version = "1.0.0"
+
+[addresses]
+ticketchain = "_"
+
+[dev-addresses]
+ticketchain = "0xcafe"
+
+[dependencies]
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", subdir = "aptos-framework", rev = "04611dd2cec1f5b7ef21c2cc151e05c587a2ce19" }
+AptosTokenObjects = { git = "https://github.com/aptos-labs/aptos-framework.git", subdir = "aptos-token-objects", rev = "04611dd2cec1f5b7ef21c2cc151e05c587a2ce19" }

@@ -1,0 +1,149 @@
+.detail-hero h1 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.5rem;
+}
+
+.description {
+  white-space: pre-wrap;
+}
+
+.tier {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tier p {
+  font-size: 0.85rem;
+  margin: 0.3rem 0 0;
+}
+
+.tier label {
+  max-width: 100px;
+  margin: 0;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.2rem;
+  padding: 1.5rem 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+
+.ticket h3 {
+  margin-bottom: 0.6rem;
+}
+
+.qr {
+  text-align: center;
+  padding: 1.5rem;
+  background: #fff;
+  color: #171022;
+  border-radius: 12px;
+  margin: 1rem 0;
+}
+
+.qr svg {
+  margin: auto;
+}
+
+.qr code {
+  display: block;
+  margin: 1rem 0;
+  font-size: 0.7rem;
+}
+
+.qr .actions {
+  justify-content: center;
+}
+
+code {
+  overflow-wrap: anywhere;
+}
+
+.dashboard-image {
+  width: 150px;
+  height: 95px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.editor fieldset {
+  border: 1px solid var(--border);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+}
+
+.editor legend {
+  color: var(--accent);
+  padding: 0.3rem;
+}
+
+.editor .button {
+  display: block;
+  margin-top: 1rem;
+}
+
+video {
+  max-width: 100%;
+  border-radius: 12px;
+  margin-top: 1rem;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 3rem 5%;
+  font-size: 0.9rem;
+}
+
+footer p {
+  margin: 0.5rem 0 1rem;
+}
+
+@media (max-width: 900px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .nav {
+    flex-wrap: wrap;
+  }
+  nav {
+    gap: 0.7rem;
+    flex-wrap: wrap;
+  }
+  .detail-hero,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .detail-hero {
+    gap: 1.5rem;
+  }
+  .hero {
+    min-height: 570px;
+  }
+  .feature {
+    margin: 1rem 2rem 3rem;
+    padding: 2rem;
+  }
+  .theme {
+    margin: 0;
+  }
+}

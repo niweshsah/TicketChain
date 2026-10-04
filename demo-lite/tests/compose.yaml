@@ -1,0 +1,49 @@
+# Disposable local verification only; hosting does not require Docker.
+name: ticketchain-lite-test
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: local-lite-test-password
+      POSTGRES_DB: ticketchain_lite_test
+    ports: ['127.0.0.1:55433:5432']
+    tmpfs: ['/var/lib/postgresql/data']
+    volumes: ['./bootstrap.sql:/docker-entrypoint-initdb.d/bootstrap.sql:ro']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d ticketchain_lite_test']
+      interval: 3s
+      retries: 20
+  auth:
+    image: supabase/gotrue:v2.196.0
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports: ['127.0.0.1:55441:9999']
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: http://localhost:4175/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:local-lite-test-password@postgres:5432/ticketchain_lite_test?options=-csearch_path%3Dauth
+      GOTRUE_SITE_URL: http://localhost:4175
+      GOTRUE_JWT_SECRET: local-lite-tests-only-signing-secret-at-least-32-characters
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: 'true'
+      GOTRUE_MAILER_AUTOCONFIRM: 'true'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:9999/health']
+      interval: 3s
+      retries: 30
+  rest:
+    image: postgrest/postgrest:v14.17
+    depends_on:
+      postgres: { condition: service_healthy }
+      auth: { condition: service_healthy }
+    ports: ['127.0.0.1:55442:3000']
+    environment:
+      PGRST_DB_URI: postgres://authenticator:local-lite-test-password@postgres:5432/ticketchain_lite_test
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: local-lite-tests-only-signing-secret-at-least-32-characters
+      PGRST_ADMIN_SERVER_PORT: 3001
+    # API readiness is checked over HTTP by tests/setup-local.js.

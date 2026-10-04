@@ -1,0 +1,156 @@
+.nav {
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.category-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+.category-chips button {
+  border-radius: 24px;
+  padding: 9px 18px;
+}
+
+.category-chips button[aria-pressed='true'] {
+  background: #a72976;
+  color: white;
+}
+
+.editor fieldset {
+  border: 1px solid #3c2c46;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 18px 0;
+  display: grid;
+  gap: 16px;
+}
+
+.editor legend {
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+.editor select[multiple] {
+  min-height: 150px;
+}
+
+.profile-avatar {
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.booking-panel {
+  position: sticky;
+  top: calc(var(--header-height, 126px) + 24px);
+  align-self: start;
+}
+
+.booking-action {
+  width: 100%;
+  text-align: center;
+}
+
+.detail-hero img {
+  border-radius: 18px;
+}
+
+@media (max-width: 700px) {
+  .nav nav {
+    gap: 12px;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .editor fieldset {
+    padding: 16px;
+  }
+  .booking-panel {
+    position: static;
+  }
+  .booking-action {
+    position: fixed;
+    bottom: 12px;
+    left: 16px;
+    width: calc(100% - 32px);
+    z-index: 20;
+    box-shadow: 0 0 25px #160d23;
+  }
+  body {
+    padding-bottom: 80px;
+  }
+}
+
+.hero {
+  min-height: 400px;
+  margin: 20px 5% 0;
+  border-radius: 20px;
+}
+
+.hero-content {
+  padding: 3rem 4%;
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.event-card img {
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+
+.card-date {
+  color: var(--pink);
+  font-weight: 650;
+}
+
+.field-error {
+  color: #ff91bd;
+}
+
+input[aria-invalid='true'] {
+  border-color: #ff91bd;
+}
+
+@media (max-width: 700px) {
+  .hero {
+    min-height: 380px;
+    margin: 16px;
+  }
+  .hero h1 {
+    font-size: 2.8rem;
+  }
+  .hero-content {
+    padding: 2rem 1.2rem;
+  }
+}
+
+p a:not(.button) {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.form-field {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-width: 140px;
+}
+
+#main {
+  scroll-margin-top: var(--header-height, 126px);
+}
+
+.form-field > label {
+  margin-bottom: 0;
+}

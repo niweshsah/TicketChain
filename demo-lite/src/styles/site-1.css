@@ -1,0 +1,168 @@
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-synthesis: none;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #110b1b;
+  --panel: #1d152a;
+  --text: #f6effc;
+  --muted: #bdb0cc;
+  --border: #382742;
+  --glass: #181020d9;
+  --accent: #ce90fa;
+  --pink: #fa91bf;
+  --input: #24192f;
+  --shadow: 0 12px 40px #0003;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+:focus-visible {
+  outline: 3px solid var(--pink);
+  outline-offset: 4px;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  margin: 0 0 1rem;
+}
+
+h1 {
+  font-size: clamp(2.1rem, 5vw, 3.8rem);
+}
+
+h2 {
+  font-size: clamp(1.7rem, 3vw, 2.5rem);
+}
+
+h3 {
+  font-size: 1.35rem;
+}
+
+p {
+  color: var(--muted);
+  margin: 0.6rem 0 1.2rem;
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 5%;
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+}
+
+.brand {
+  font-weight: 850;
+  font-size: 1.55rem;
+  color: var(--text);
+  letter-spacing: -0.06em;
+}
+
+.brand span {
+  color: var(--pink);
+}
+
+.brand small {
+  display: block;
+  font-size: 0.55rem;
+  letter-spacing: 0.23em;
+  color: var(--muted);
+}
+
+nav {
+  display: flex;
+  gap: 1.3rem;
+  align-items: center;
+}
+
+nav a {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.theme {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+}
+
+select {
+  max-width: 100%;
+}
+
+.theme select {
+  padding: 0.4rem;
+}
+
+.skip {
+  position: absolute;
+  top: -100px;
+}
+
+.skip:focus {
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  background: var(--panel);
+  padding: 1rem;
+}

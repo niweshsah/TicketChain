@@ -1,6 +1,10 @@
 # TicketChain
 
+**Live site:** [ticketchain-94z.pages.dev](https://ticketchain-94z.pages.dev/)
+
 A concert-ticket booking demo with city-based discovery, organizer tools, profile photos, atomic reservations, payments, refunds, and QR check-in. Built with React, TypeScript, Express, and PostgreSQL. Payments use simulated INR by default; Razorpay test mode and Aptos testnet are optional.
+
+The live site uses the same core UI with a lightweight Supabase backend, hosted on Cloudflare Pages. The microservice architecture below describes the full project.
 
 ## Architecture
 

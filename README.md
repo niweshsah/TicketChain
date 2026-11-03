@@ -70,3 +70,43 @@ npm test
 ```
 
 See [validation](docs/VALIDATION.md) for database and browser tests, [demo verification](docs/demo-hosting-verification.md) for deployment results, and [database cleanup](docs/database-cleanup.md) for guarded reset/user-removal commands. API contracts are in [OpenAPI](docs/openapi.json).
+
+
+
+flowchart TD
+    U["Users"] --> CDN["CDN + WAF"]
+    CDN --> LB["Load Balancer / Nginx"]
+
+    LB --> BA["Booking API Replicas"]
+    LB --> PA["Payments API Replicas"]
+    LB --> CA["Catalog API Replicas"]
+    LB --> IA["Identity API Replicas"]
+
+    BA --> PG1["Booking PostgreSQL"]
+    PA --> PG2["Payments PostgreSQL"]
+    CA --> PG3["Catalog PostgreSQL"]
+    IA --> PG4["Identity PostgreSQL"]
+
+    PG1 --> PB["PgBouncer"]
+    PG2 --> PB
+    PG3 --> PB
+    PG4 --> PB
+
+    BA --> R1["Redis HA: Queue"]
+    CA --> R2["Redis HA: Cache"]
+
+    BA --> MQ["RabbitMQ Cluster"]
+    PA --> MQ
+    MQ --> BW["Booking Workers"]
+    MQ --> PW["Payments Workers"]
+    MQ --> NW["Notification Workers"]
+
+    CA --> ES["Elasticsearch Cluster"]
+
+    BA --> OBS["Monitoring + Tracing"]
+    BW --> OBS
+    PA --> OBS
+    CA --> OBS
+    MQ --> OBS
+    PG1 --> OBS
+
